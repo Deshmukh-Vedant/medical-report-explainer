@@ -28,9 +28,9 @@ google-generativeai==0.5.4
 
 # --- OCR / PDF processing ---
 pdfplumber==0.11.0
-PyMuPDF==1.24.4
+PyMuPDF>=1.26.0
 pytesseract==0.3.10
-pillow==10.3.0
+Pillow>=11.3.0
 
 # --- PDF generation (summary export) ---
 reportlab==4.2.0
