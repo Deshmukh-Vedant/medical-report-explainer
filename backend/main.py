@@ -8,6 +8,7 @@ Run with:
 """
 
 import logging
+import os
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -21,6 +22,18 @@ from routes import auth, upload, analysis, history
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("main")
+
+allowed_origins = [
+    "http://127.0.0.1:5500",
+    "http://localhost:5500",
+    "http://127.0.0.1:5501",
+    "http://localhost:5501",
+]
+configured_origins = os.getenv("CORS_ALLOWED_ORIGINS", "")
+if configured_origins:
+    allowed_origins.extend(
+        origin.strip() for origin in configured_origins.split(",") if origin.strip()
+    )
 
 # --- Rate limiter (protects auth & upload endpoints from abuse) ---
 limiter = Limiter(key_func=get_remote_address, default_limits=["100/hour"])
@@ -41,12 +54,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # --- CORS: allow the local static frontend to call this API ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://127.0.0.1:5500",
-        "http://localhost:5500",
-        "http://127.0.0.1:5501",
-        "http://localhost:5501",
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -93,3 +101,9 @@ app.include_router(auth.router)
 app.include_router(upload.router)
 app.include_router(analysis.router)
 app.include_router(history.router)
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(app, host="0.0.0.0", port=8000)

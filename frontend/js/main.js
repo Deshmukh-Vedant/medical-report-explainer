@@ -4,7 +4,11 @@
    ========================================================== */
 
 // ---------- Global config ----------
-const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL =
+  window.__API_BASE_URL__ ||
+  (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? "http://127.0.0.1:8000"
+    : window.location.origin);
 
 // ---------- Auth token helpers ----------
 function getToken() {
