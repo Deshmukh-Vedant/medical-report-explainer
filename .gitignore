@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+
+# Environment files
+.env
+.env.*
+
+# App data
+uploads/
+backend/uploads/
+*.log
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
