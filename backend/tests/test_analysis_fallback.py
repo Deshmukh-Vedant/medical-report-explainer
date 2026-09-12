@@ -19,6 +19,19 @@ class FallbackAnalysisTests(unittest.TestCase):
         self.assertEqual(analysis.health_score, 78.0)
         self.assertEqual(analysis.risk_level, "Moderate")
 
+    def test_fallback_analysis_does_not_default_to_perfect_score(self):
+        text = "HbA1c: 8.2%\nCholesterol: 240 mg/dL\nALT: 55 U/L"
+        analysis = __import__('routes.analysis', fromlist=['']).build_fallback_analysis(
+            Report(
+                summary=text,
+                health_score=None,
+                risk_level=None,
+            )
+        )
+
+        self.assertLess(analysis.health_score, 90)
+        self.assertIn(analysis.risk_level, {"Moderate", "High"})
+
 
 if __name__ == "__main__":
     unittest.main()

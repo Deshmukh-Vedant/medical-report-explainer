@@ -13,6 +13,7 @@ import os
 import json
 import re
 import logging
+from pathlib import Path
 
 try:
     import google.generativeai as genai
@@ -22,12 +23,26 @@ from dotenv import load_dotenv
 
 from utils.prompt import build_analysis_prompt, build_translation_prompt
 
-load_dotenv()
+project_root = Path(__file__).resolve().parents[1]
+load_dotenv(project_root / ".env")
+load_dotenv(Path.cwd() / ".env")
 
 logger = logging.getLogger("gemini")
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+
+
+def _compute_score_from_markers(abnormal_markers):
+    """Return a more realistic health score from the detected abnormal lab markers."""
+    abnormal_count = len(abnormal_markers)
+    if abnormal_count == 0:
+        return 85.0, "Low"
+    if abnormal_count >= 4:
+        return max(28.0, 100 - abnormal_count * 16), "High"
+    if abnormal_count >= 2:
+        return max(40.0, 100 - abnormal_count * 18), "Moderate"
+    return max(50.0, 100 - abnormal_count * 20), "Moderate"
 
 if not GEMINI_API_KEY:
     logger.warning(
@@ -55,9 +70,8 @@ def _get_model():
 
 
 def _fallback_analysis(report_text: str, patient_context: str = "") -> dict:
-    """Create a simple structured analysis when Gemini is unavailable."""
+    """Create a realistic structured analysis when Gemini is unavailable."""
     normalized = (report_text or "").strip()
-    lines = [line.strip() for line in normalized.splitlines() if line.strip()]
     text_lower = normalized.lower()
 
     detected_tests = []
@@ -76,68 +90,49 @@ def _fallback_analysis(report_text: str, patient_context: str = "") -> dict:
             "when_to_consult_doctor": "Please follow up with your healthcare provider if symptoms persist or worsen.",
         })
 
-    for pattern, label, range_text, meaning in [
-        (r"hba1c\s*[:#]?\s*([0-9.]+)", "HbA1c", "Below 5.7%", "Shows average blood sugar over the past 2-3 months."),
-        (r"cholesterol\s*[:#]?\s*([0-9.]+)", "Cholesterol", "Below 200 mg/dL", "Shows overall cholesterol status."),
-        (r"glucose\s*[:#]?\s*([0-9.]+)", "Glucose", "70-140 mg/dL", "Shows current blood sugar level."),
-        (r"alt\s*[:#]?\s*([0-9.]+)", "ALT", "Up to 40 U/L", "Shows liver-related activity."),
-        (r"ast\s*[:#]?\s*([0-9.]+)", "AST", "Up to 40 U/L", "Shows liver-related activity."),
-        (r"creatinine\s*[:#]?\s*([0-9.]+)", "Creatinine", "0.6-1.2 mg/dL", "Shows kidney function."),
-        (r"hemoglobin\s*[:#]?\s*([0-9.]+)", "Hemoglobin", "13.0-17.0 g/dL", "Shows oxygen-carrying capacity of the blood."),
-    ]:
+    rules = [
+        (r"(?:hba1c|hemoglobin a1c|hb[a-z]?1c)\s*[:=]?\s*([0-9]+(?:\.[0-9]+)?)", "HbA1c", "Below 5.7%", "Shows average blood sugar over the past 2-3 months.", lambda v: float(v) > 6.5),
+        (r"(?:cholesterol|total cholesterol)\s*[:=]?\s*([0-9]+(?:\.[0-9]+)?)", "Cholesterol", "Below 200 mg/dL", "Shows overall cholesterol status.", lambda v: float(v) > 200),
+        (r"(?:glucose|fasting glucose|blood sugar)\s*[:=]?\s*([0-9]+(?:\.[0-9]+)?)", "Glucose", "70-140 mg/dL", "Shows current blood sugar level.", lambda v: float(v) > 140),
+        (r"(?:alt|sgpt)\s*[:=]?\s*([0-9]+(?:\.[0-9]+)?)", "ALT", "Up to 40 U/L", "Shows liver-related activity.", lambda v: float(v) > 40),
+        (r"(?:ast|sgot)\s*[:=]?\s*([0-9]+(?:\.[0-9]+)?)", "AST", "Up to 40 U/L", "Shows liver-related activity.", lambda v: float(v) > 40),
+        (r"(?:creatinine)\s*[:=]?\s*([0-9]+(?:\.[0-9]+)?)", "Creatinine", "0.6-1.2 mg/dL", "Shows kidney function.", lambda v: float(v) > 1.2),
+        (r"(?:hemoglobin|hb)\s*[:=]?\s*([0-9]+(?:\.[0-9]+)?)", "Hemoglobin", "13.0-17.0 g/dL", "Shows oxygen-carrying capacity of the blood.", lambda v: float(v) < 13),
+        (r"(?:wbc|white blood cell)\s*[:=]?\s*([0-9]+(?:\.[0-9]+)?)", "WBC", "4.0-11.0 x10^3/uL", "Shows white blood cell count.", lambda v: float(v) > 11),
+    ]
+
+    for pattern, label, range_text, meaning, is_abnormal in rules:
         match = re.search(pattern, text_lower)
         if match:
             value = match.group(1)
-            name = label
             status = "Green"
-            if label == "HbA1c" and float(value) > 6.5:
+            if is_abnormal(value):
                 status = "Yellow"
-                abnormal_markers.append(name)
-            elif label == "Cholesterol" and float(value) > 200:
-                status = "Yellow"
-                abnormal_markers.append(name)
-            elif label == "Glucose" and float(value) > 140:
-                status = "Yellow"
-                abnormal_markers.append(name)
-            elif label == "ALT" and float(value) > 40:
-                status = "Yellow"
-                abnormal_markers.append(name)
-            elif label == "AST" and float(value) > 40:
-                status = "Yellow"
-                abnormal_markers.append(name)
-            elif label == "Creatinine" and float(value) > 1.2:
-                status = "Yellow"
-                abnormal_markers.append(name)
-            elif label == "Hemoglobin" and float(value) < 13:
-                status = "Yellow"
-                abnormal_markers.append(name)
-            add_marker(name, value, range_text, status, meaning)
+                abnormal_markers.append(label)
+            add_marker(label, value, range_text, status, meaning)
 
     if not detected_tests:
         detected_tests.append({
             "test_name": "General report review",
             "normal_range": "N/A",
-            "actual_value": "Text was provided, but no standard test values were recognized.",
-            "status": "Green",
-            "meaning": "The system could not detect specific numeric markers from the provided text.",
-            "possible_causes": ["No obvious markers were identified."],
+            "actual_value": "No numeric lab markers were recognized in the uploaded text.",
+            "status": "Yellow",
+            "meaning": "The system could not confidently detect standard report values from this document.",
+            "possible_causes": ["OCR may have missed the test values or the report format is unusual."],
             "lifestyle_suggestions": ["Continue routine healthy habits and share the report with a clinician."],
             "diet_suggestions": ["Maintain balanced meals and hydration."],
             "when_to_consult_doctor": "Contact your healthcare provider if you have symptoms or questions.",
         })
 
     abnormal_count = len(abnormal_markers)
-    score = max(45, 90 - abnormal_count * 12)
-    if abnormal_count >= 3:
-        risk_level = "High"
-    elif abnormal_count >= 1:
-        risk_level = "Moderate"
-    else:
+    score, risk_level = _compute_score_from_markers(abnormal_markers)
+    if abnormal_count == 0 and detected_tests:
+        score = 82.0
         risk_level = "Low"
 
     patient_summary = (
-        "This summary was generated from the uploaded text because the AI service was unavailable. "
-        "Please review the report carefully with a qualified healthcare professional."
+        "This summary was generated from the extracted report text because the AI service was unavailable. "
+        "The assessment below is based on the detected lab values and should be reviewed with a qualified healthcare professional."
     )
     overall_summary = (
         f"The report text suggests {risk_level.lower()} concern based on the values detected. "
@@ -149,7 +144,7 @@ def _fallback_analysis(report_text: str, patient_context: str = "") -> dict:
         "overall_health_summary": overall_summary,
         "key_findings": [
             "The report was analyzed using a built-in fallback parser.",
-            *([f"Detected an unusual value for {name}." for name in abnormal_markers] if abnormal_markers else []),
+            *([f"Detected an unusual value for {name}." for name in abnormal_markers] if abnormal_markers else ["The uploaded text did not clearly contain abnormal numeric markers, so the score is a cautious estimate."]),
         ],
         "health_score": round(score, 1),
         "risk_level": risk_level,
