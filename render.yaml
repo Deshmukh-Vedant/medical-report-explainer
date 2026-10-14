@@ -18,4 +18,4 @@ services:
       - key: DATABASE_URL
         value: sqlite:///./medical_reports.db
       - key: CORS_ALLOWED_ORIGINS
-        value: "https://your-frontend-domain.com"
+        value: "https://your-netlify-site.netlify.app"
