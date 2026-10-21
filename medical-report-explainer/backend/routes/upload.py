@@ -76,7 +76,8 @@ async def upload_report(
         )
 
     # --- Save with a unique, sanitized filename ---
-    safe_original_name = os.path.basename(file.filename).replace(" ", "_")
+    raw_name = (file.filename or "report.pdf").replace("\\", "/")
+    safe_original_name = os.path.basename(raw_name).replace(" ", "_")
     unique_filename = f"{uuid.uuid4().hex}_{safe_original_name}"
     saved_path = os.path.join(UPLOAD_DIR, unique_filename)
 

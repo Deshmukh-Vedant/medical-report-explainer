@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="View and update your MedExplain AI account profile and settings." />
+<title>My Profile — MedExplain AI</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<link href="css/style.css" rel="stylesheet">
+<link href="css/dashboard.css" rel="stylesheet">
+<style>
+  .profile-avatar {
+    width: 80px; height: 80px; border-radius: 50%;
+    background: var(--gradient-brand); display: flex;
+    align-items: center; justify-content: center;
+    font-size: 2rem; color: #fff; font-weight: 700;
+    margin: 0 auto 16px;
+  }
+  .stat-box {
+    border-radius: 14px; background: var(--bg-white);
+    box-shadow: var(--shadow-soft); padding: 20px;
+    text-align: center;
+  }
+  .stat-box .stat-value { font-size: 1.8rem; font-weight: 800; color: var(--primary-blue); }
+  .stat-box .stat-label { font-size: 0.82rem; color: var(--text-muted); }
+  .password-strength-bar { height: 4px; border-radius: 4px; background: #e2e8f0; margin-top: 6px; overflow: hidden; }
+  .password-strength-fill { height: 100%; border-radius: 4px; transition: width 0.3s ease, background 0.3s ease; width: 0%; }
+  .strength-weak { background: #dc2626; }
+  .strength-fair { background: #d97706; }
+  .strength-good { background: #16a34a; }
+  .strength-label { font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg navbar-glass">
+  <div class="container">
+    <a class="navbar-brand navbar-brand-custom" href="index.html">
+      <i class="bi bi-heart-pulse-fill me-1"></i>MedExplain<span>AI</span>
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMain">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navMain">
+      <ul class="navbar-nav mx-auto">
+        <li class="nav-item"><a class="nav-link nav-link-custom" href="index.html">Home</a></li>
+        <li class="nav-item"><a class="nav-link nav-link-custom" href="dashboard.html">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link nav-link-custom" href="history.html">History</a></li>
+      </ul>
+      <ul class="navbar-nav align-items-lg-center gap-2" id="navAuthLinks"></ul>
+      <button class="theme-toggle-btn ms-lg-3 mt-2 mt-lg-0" id="themeToggleBtn" title="Toggle dark mode">
+        <i class="bi bi-moon-stars-fill" id="themeIcon"></i>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<div class="container dashboard-shell">
+  <div class="row g-4">
+
+    <!-- LEFT: Profile info -->
+    <div class="col-lg-4">
+      <div class="glass-card text-center mb-4">
+        <div class="profile-avatar" id="profileAvatar">?</div>
+        <h4 id="profileName" class="mb-1">Loading...</h4>
+        <p id="profileEmail" class="text-muted mb-1">—</p>
+        <p id="profileJoined" class="text-muted small mb-3">Member since —</p>
+        <button class="btn btn-outline-brand btn-sm" onclick="logout()">
+          <i class="bi bi-box-arrow-right me-1"></i>Logout
+        </button>
+      </div>
+
+      <!-- Stats -->
+      <div class="row g-3 mb-4">
+        <div class="col-6">
+          <div class="stat-box">
+            <div class="stat-value" id="statReports">—</div>
+            <div class="stat-label">Reports</div>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="stat-box">
+            <div class="stat-value" id="statAnalysed">—</div>
+            <div class="stat-label">Analysed</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass-card">
+        <h6 class="mb-3"><i class="bi bi-info-circle me-2"></i>About Your Account</h6>
+        <p class="text-muted small mb-0">
+          Your medical reports and analysis results are stored securely and are only visible to you.
+          Deleting a report removes it from our servers permanently.
+        </p>
+        <hr style="border-color: var(--border-light);">
+        <p class="text-muted small mb-0">
+          <i class="bi bi-shield-check text-success me-1"></i>
+          Passwords are stored using strong one-way hashing and are never readable by our team.
+        </p>
+      </div>
+    </div>
+
+    <!-- RIGHT: Edit forms -->
+    <div class="col-lg-8">
+
+      <!-- Update name -->
+      <div class="glass-card mb-4">
+        <h5 class="mb-3"><i class="bi bi-person-gear me-2"></i>Update Profile</h5>
+        <form id="updateNameForm">
+          <div class="mb-3">
+            <label for="editName" class="form-label fw-semibold">Full Name</label>
+            <input type="text" class="form-control" id="editName" placeholder="Your full name" required minlength="2" maxlength="100">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Email</label>
+            <input type="email" class="form-control" id="editEmail" disabled>
+            <div class="form-text text-muted">Email cannot be changed. Contact support if needed.</div>
+          </div>
+          <button type="submit" class="btn btn-brand" id="updateNameBtn">
+            <span id="updateNameSpinner" class="spinner-border spinner-border-sm me-2" style="display:none;"></span>
+            Save Changes
+          </button>
+        </form>
+      </div>
+
+      <!-- Change password -->
+      <div class="glass-card mb-4">
+        <h5 class="mb-3"><i class="bi bi-key me-2"></i>Change Password</h5>
+        <form id="changePasswordForm">
+          <div class="mb-3">
+            <label for="currentPwd" class="form-label fw-semibold">Current Password</label>
+            <input type="password" class="form-control" id="currentPwd" required>
+          </div>
+          <div class="mb-3">
+            <label for="newPwd" class="form-label fw-semibold">New Password</label>
+            <input type="password" class="form-control" id="newPwd" required minlength="8">
+            <div class="password-strength-bar"><div class="password-strength-fill" id="pwdStrengthFill"></div></div>
+            <div class="strength-label" id="pwdStrengthLabel"></div>
+          </div>
+          <div class="mb-3">
+            <label for="confirmPwd" class="form-label fw-semibold">Confirm New Password</label>
+            <input type="password" class="form-control" id="confirmPwd" required minlength="8">
+            <div class="invalid-feedback" id="confirmPwdError">Passwords do not match.</div>
+          </div>
+          <button type="submit" class="btn btn-brand" id="changePwdBtn">
+            <span id="changePwdSpinner" class="spinner-border spinner-border-sm me-2" style="display:none;"></span>
+            Change Password
+          </button>
+        </form>
+      </div>
+
+      <!-- Danger zone -->
+      <div class="glass-card" style="border:1px solid rgba(220,38,38,0.2);">
+        <h5 class="mb-2 text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Account</h5>
+        <p class="text-muted small mb-3">Logging out will end your current session.</p>
+        <button class="btn btn-outline-danger btn-sm" onclick="logout()">
+          <i class="bi bi-box-arrow-right me-1"></i>Logout
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/main.js"></script>
+<script>
+  requireAuth();
+
+  async function loadProfile() {
+    const res = await apiRequest('/profile');
+    if (!res || !res.ok) return;
+    const user = await res.json();
+
+    document.getElementById('profileName').textContent = user.name;
+    document.getElementById('profileEmail').textContent = user.email;
+    document.getElementById('editName').value = user.name;
+    document.getElementById('editEmail').value = user.email;
+
+    const initials = user.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    document.getElementById('profileAvatar').textContent = initials;
+
+    if (user.created_at) {
+      document.getElementById('profileJoined').textContent =
+        'Member since ' + new Date(user.created_at).toLocaleDateString('en-IN', {year:'numeric', month:'long'});
+    }
+  }
+
+  async function loadStats() {
+    const res = await apiRequest('/history');
+    if (!res || !res.ok) return;
+    const reports = await res.json();
+    document.getElementById('statReports').textContent = reports.length;
+    document.getElementById('statAnalysed').textContent = reports.filter(r => r.health_score !== null && r.health_score !== undefined).length;
+  }
+
+  // Update name form
+  document.getElementById('updateNameForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('editName').value.trim();
+    if (name.length < 2) { showToast('Name must be at least 2 characters.', 'error'); return; }
+    const btn = document.getElementById('updateNameBtn');
+    const spinner = document.getElementById('updateNameSpinner');
+    btn.disabled = true; spinner.style.display = 'inline-block';
+    try {
+      const res = await apiRequest('/profile', {
+        method: 'PUT',
+        body: JSON.stringify({ name }),
+      });
+      if (!res) return;
+      const data = await res.json();
+      if (!res.ok) { showToast(data.detail || 'Update failed.', 'error'); return; }
+      showToast('Profile updated successfully!', 'success');
+      document.getElementById('profileName').textContent = data.name;
+      const initials = data.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+      document.getElementById('profileAvatar').textContent = initials;
+    } finally {
+      btn.disabled = false; spinner.style.display = 'none';
+    }
+  });
+
+  // Password strength
+  document.getElementById('newPwd').addEventListener('input', function() {
+    const val = this.value;
+    const fill = document.getElementById('pwdStrengthFill');
+    const label = document.getElementById('pwdStrengthLabel');
+    let s = 0;
+    if (val.length >= 8) s++;
+    if (/[A-Z]/.test(val)) s++;
+    if (/[0-9]/.test(val)) s++;
+    if (/[^A-Za-z0-9]/.test(val)) s++;
+    const widths = ['0%','30%','55%','80%','100%'];
+    const cls = ['','strength-weak','strength-fair','strength-good','strength-good'];
+    const labs = ['','Weak','Fair','Good','Strong'];
+    fill.style.width = widths[s];
+    fill.className = `password-strength-fill ${cls[s]}`;
+    label.textContent = val.length ? labs[s] : '';
+  });
+
+  // Change password form
+  document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const curr = document.getElementById('currentPwd').value;
+    const newp = document.getElementById('newPwd').value;
+    const conf = document.getElementById('confirmPwd').value;
+    const confErr = document.getElementById('confirmPwdError');
+
+    if (newp.length < 8) { showToast('New password must be at least 8 characters.', 'error'); return; }
+    if (newp !== conf) {
+      document.getElementById('confirmPwd').classList.add('is-invalid');
+      confErr.style.display = 'block';
+      return;
+    }
+    document.getElementById('confirmPwd').classList.remove('is-invalid');
+    confErr.style.display = 'none';
+
+    const btn = document.getElementById('changePwdBtn');
+    const spinner = document.getElementById('changePwdSpinner');
+    btn.disabled = true; spinner.style.display = 'inline-block';
+
+    try {
+      const res = await apiRequest('/change-password', {
+        method: 'POST',
+        body: JSON.stringify({ current_password: curr, new_password: newp, confirm_password: conf }),
+      });
+      if (!res) return;
+      const data = await res.json();
+      if (!res.ok) { showToast(data.detail || 'Password change failed.', 'error'); return; }
+      showToast('Password changed successfully!', 'success');
+      document.getElementById('changePasswordForm').reset();
+      document.getElementById('pwdStrengthFill').style.width = '0%';
+      document.getElementById('pwdStrengthLabel').textContent = '';
+    } finally {
+      btn.disabled = false; spinner.style.display = 'none';
+    }
+  });
+
+  document.addEventListener('DOMContentLoaded', () => {
+    loadProfile();
+    loadStats();
+  });
+</script>
+</body>
+</html>

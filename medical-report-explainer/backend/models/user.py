@@ -10,7 +10,7 @@ saving them here.
 
 from datetime import datetime
 
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Column, Integer, String, DateTime, Boolean
 from sqlalchemy.orm import relationship
 
 from models.database import Base
@@ -24,6 +24,9 @@ class User(Base):
     email = Column(String(150), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+    reset_token_hash = Column(String(256), nullable=True)
+    reset_token_expires = Column(DateTime, nullable=True)
+    is_active = Column(Boolean, default=True)
 
     # One user can have many uploaded/analyzed reports
     reports = relationship(

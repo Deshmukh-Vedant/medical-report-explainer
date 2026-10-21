@@ -1,4 +1,1 @@
-scan this code in detail sign in or working in my codei want the sign in to be dobe by supabase connect supabase mcp server built the sign in and sign out feature so that customer can login in and store all the data in db in supabase only all the add to cart feature and rest of the things would be save in db as per login maintain the session and cookies
-
-
-i have attched the supabase project  url and anon key please procedd to the next step and show me the preview of the site and also check if their is any bug or not , do 5 testing also check if whole application is working or not , end to end the login session id , the cookies , check all the cart values are storing or not and if there is any bog please let me know
+python-3.11.10

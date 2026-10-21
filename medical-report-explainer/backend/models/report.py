@@ -40,6 +40,7 @@ class Report(Base):
 
     health_score = Column(Float, nullable=True)       # 0-100
     risk_level = Column(String(20), nullable=True)    # Low / Moderate / High
+    ml_prediction_json = Column(Text, nullable=True)   # stores MLPrediction JSON from ML model
 
     hospital_name = Column(String(255), nullable=True)
     language = Column(String(10), default="en")        # "en" or "mr"
@@ -47,6 +48,16 @@ class Report(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     owner = relationship("User", back_populates="reports")
+
+    @property
+    def ml_risk_label(self):
+        if self.ml_prediction_json:
+            try:
+                import json
+                return json.loads(self.ml_prediction_json).get("risk_label")
+            except Exception:
+                return None
+        return None
 
     def __repr__(self):
         return f"<Report id={self.id} name={self.report_name} user_id={self.user_id}>"

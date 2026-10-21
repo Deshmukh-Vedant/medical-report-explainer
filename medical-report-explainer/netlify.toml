@@ -1,0 +1,19 @@
+# Netlify configuration for MedExplain AI (Subfolder Base)
+[build]
+  publish = "frontend"
+
+# Security & CORS Headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+# Fallback proxy for API endpoints if using relative requests
+[[redirects]]
+  from = "/api/*"
+  to = "https://medical-report-explainer-backend.onrender.com/:splat"
+  status = 200
+  force = true

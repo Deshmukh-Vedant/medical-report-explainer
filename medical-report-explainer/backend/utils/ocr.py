@@ -79,18 +79,40 @@ def extract_text_from_pdf(file_path: str) -> str:
     if not os.path.exists(file_path):
         raise OCRError("The uploaded PDF could not be found on disk.")
 
+    # Validate PDF structure and check encryption
+    try:
+        with fitz.open(file_path) as doc:
+            if doc.is_encrypted or doc.needs_pass:
+                raise OCRError("This PDF is password-protected. Please upload an unprotected PDF.")
+            total_pages = doc.page_count
+            if total_pages == 0:
+                raise OCRError("The uploaded PDF contains no pages.")
+    except OCRError:
+        raise
+    except Exception as exc:
+        raise OCRError(f"Unable to parse PDF: {exc}")
+
     try:
         pages_text = _extract_with_pdfplumber(file_path)
     except Exception as exc:
-        logger.warning("pdfplumber failed (%s); falling back to OCR", exc)
+        logger.warning("pdfplumber failed (%s); falling back to PyMuPDF/OCR", exc)
         pages_text = []
 
     if not pages_text:
-        with fitz.open(file_path) as doc:
-            total_pages = doc.page_count
         pages_needing_ocr = list(range(total_pages))
         pages_text = [""] * total_pages
     else:
+        # Also try PyMuPDF direct text extraction for any pages pdfplumber missed
+        try:
+            with fitz.open(file_path) as doc:
+                for i, text in enumerate(pages_text):
+                    if len(text) < MIN_CHARS_THRESHOLD and i < doc.page_count:
+                        pymupdf_text = doc[i].get_text().strip()
+                        if len(pymupdf_text) >= MIN_CHARS_THRESHOLD:
+                            pages_text[i] = pymupdf_text
+        except Exception as exc:
+            logger.debug("PyMuPDF secondary text extraction skipped: %s", exc)
+
         pages_needing_ocr = [
             i for i, text in enumerate(pages_text) if len(text) < MIN_CHARS_THRESHOLD
         ]

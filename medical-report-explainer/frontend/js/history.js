@@ -58,7 +58,8 @@ async function loadHistory(search = "") {
             ${r.hospital_name ? "• " + escapeHtml(r.hospital_name) : ""}
           </div>
         </div>
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          ${r.ml_risk_label ? `<span class="badge" style="background:rgba(124,58,237,0.1); color:#7c3aed; font-size:0.75rem; border-radius:99px; padding:4px 8px;"><i class="bi bi-cpu me-1"></i>ML: ${escapeHtml(r.ml_risk_label)}</span>` : ""}
           ${r.risk_level ? `<span class="risk-badge risk-${r.risk_level.toLowerCase()}">${r.risk_level}</span>` : `<span class="text-muted small">Not analyzed</span>`}
           ${r.health_score !== null && r.health_score !== undefined ? `<span class="fw-semibold">${Math.round(r.health_score)}/100</span>` : ""}
         </div>

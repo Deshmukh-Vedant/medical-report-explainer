@@ -4,7 +4,36 @@
    ========================================================== */
 
 // ---------- Global config ----------
-const API_BASE_URL = "http://127.0.0.1:8000";
+// Default Render Backend URL for production Netlify deployment
+const DEFAULT_RENDER_BACKEND_URL = "https://medical-report-explainer-backend.onrender.com";
+
+// Support override via window object, query param (?backend_url=https://...), or localStorage
+const _urlParamBackend =
+  typeof window !== "undefined" && window.location && window.location.search
+    ? new URLSearchParams(window.location.search).get("backend_url")
+    : null;
+
+if (_urlParamBackend && typeof localStorage !== "undefined") {
+  localStorage.setItem("mre_api_url", _urlParamBackend.replace(/\/+$/, ""));
+}
+
+const _savedBackendUrl =
+  (typeof window !== "undefined" && (window.RENDER_BACKEND_URL || window.__API_URL__)) ||
+  (typeof localStorage !== "undefined" && localStorage.getItem("mre_api_url"));
+
+const _isLocalhost =
+  typeof window !== "undefined" &&
+  (window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1" ||
+    window.location.hostname === "0.0.0.0");
+
+const API_BASE_URL = _savedBackendUrl
+  ? _savedBackendUrl.replace(/\/+$/, "")
+  : _isLocalhost
+  ? "http://127.0.0.1:8000"
+  : (typeof window !== "undefined" && window.location.origin.includes("netlify.app")
+      ? DEFAULT_RENDER_BACKEND_URL
+      : (typeof window !== "undefined" ? window.location.origin : "http://127.0.0.1:8000"));
 
 // ---------- Auth token helpers ----------
 function getToken() {
@@ -139,6 +168,7 @@ function updateNavbarAuthLinks() {
     authLinks.innerHTML = `
       <li class="nav-item"><a class="nav-link nav-link-custom" href="dashboard.html">Dashboard</a></li>
       <li class="nav-item"><a class="nav-link nav-link-custom" href="history.html">History</a></li>
+      <li class="nav-item"><a class="nav-link nav-link-custom" href="profile.html"><i class="bi bi-person-circle me-1"></i>Profile</a></li>
       <li class="nav-item"><a class="nav-link nav-link-custom" href="#" onclick="logout()">Logout</a></li>
     `;
   } else {

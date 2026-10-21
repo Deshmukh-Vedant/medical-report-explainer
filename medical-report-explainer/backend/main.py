@@ -8,16 +8,18 @@ Run with:
 """
 
 import logging
+import os
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 from models.database import init_db
-from routes import auth, upload, analysis, history
+from routes import auth, upload, analysis, history, profile, predict
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("main")
@@ -38,15 +40,31 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# --- CORS: allow the local static frontend to call this API ---
+# --- CORS: allow local development and Netlify frontend ---
+cors_origins_env = os.getenv("CORS_ORIGINS", "")
+allowed_origins = [
+    "http://127.0.0.1:5500",
+    "http://localhost:5500",
+    "http://127.0.0.1:5501",
+    "http://localhost:5501",
+    "http://localhost:5502",
+    "http://127.0.0.1:5502",
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
+    "http://127.0.0.1:8000",
+    "http://localhost:8000",
+    "http://localhost:3000",
+]
+if cors_origins_env:
+    for origin in cors_origins_env.split(","):
+        origin_clean = origin.strip()
+        if origin_clean and origin_clean not in allowed_origins:
+            allowed_origins.append(origin_clean)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://127.0.0.1:5500",
-        "http://localhost:5500",
-        "http://127.0.0.1:5501",
-        "http://localhost:5501",
-    ],
+    allow_origins=allowed_origins,
+    allow_origin_regex=r"^https:\/\/.*\.netlify\.app$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -60,8 +78,9 @@ def on_startup():
     logger.info("Database initialized. AI Medical Report Explainer API is ready.")
 
 
-@app.get("/", tags=["Health"])
-def root():
+@app.get("/health", tags=["Health"])
+@app.get("/api/health", tags=["Health"])
+def health_check():
     return {
         "status": "ok",
         "service": "AI Medical Report Explainer API",
@@ -79,6 +98,36 @@ def dashboard_health():
     return {"status": "ok"}
 
 
+# --- Frontend Static Files & Pages (for all-in-one local & Render deployment) ---
+FRONTEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend"))
+if os.path.isdir(FRONTEND_DIR):
+    css_dir = os.path.join(FRONTEND_DIR, "css")
+    js_dir = os.path.join(FRONTEND_DIR, "js")
+    if os.path.isdir(css_dir):
+        app.mount("/css", StaticFiles(directory=css_dir), name="css")
+    if os.path.isdir(js_dir):
+        app.mount("/js", StaticFiles(directory=js_dir), name="js")
+
+    @app.get("/", tags=["Frontend"])
+    def root(request: Request):
+        accept = request.headers.get("accept", "")
+        index_path = os.path.join(FRONTEND_DIR, "index.html")
+        if ("text/html" in accept or "*/*" in accept) and os.path.exists(index_path):
+            return FileResponse(index_path)
+        return health_check()
+
+    @app.get("/{page}.html", tags=["Frontend"])
+    def serve_html(page: str):
+        page_path = os.path.join(FRONTEND_DIR, f"{page}.html")
+        if os.path.exists(page_path):
+            return FileResponse(page_path)
+        raise HTTPException(status_code=404, detail=f"Page {page}.html not found")
+else:
+    @app.get("/", tags=["Health"])
+    def root():
+        return health_check()
+
+
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
     logger.exception("Unhandled error on %s", request.url)
@@ -93,3 +142,12 @@ app.include_router(auth.router)
 app.include_router(upload.router)
 app.include_router(analysis.router)
 app.include_router(history.router)
+app.include_router(profile.router)
+app.include_router(predict.router)
+
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.getenv("PORT", "8000"))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
+

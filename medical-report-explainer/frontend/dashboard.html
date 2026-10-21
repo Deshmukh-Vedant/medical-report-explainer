@@ -25,6 +25,7 @@
         <li class="nav-item"><a class="nav-link nav-link-custom" href="index.html">Home</a></li>
         <li class="nav-item"><a class="nav-link nav-link-custom active" href="dashboard.html">Dashboard</a></li>
         <li class="nav-item"><a class="nav-link nav-link-custom" href="history.html">History</a></li>
+        <li class="nav-item"><a class="nav-link nav-link-custom" href="profile.html"><i class="bi bi-person-circle me-1"></i>Profile</a></li>
       </ul>
       <ul class="navbar-nav align-items-lg-center gap-2" id="navAuthLinks"></ul>
       <button class="theme-toggle-btn ms-lg-3 mt-2 mt-lg-0" id="themeToggleBtn" title="Toggle dark mode">
@@ -85,6 +86,33 @@
         <div id="emergencyBanner" class="alert alert-danger d-none mb-3">
           <i class="bi bi-exclamation-octagon-fill me-2"></i>
           <strong>Possible emergency signs detected.</strong> Please seek medical attention promptly — see details below.
+        </div>
+
+        <!-- ================= ML PREDICTION PANEL ================= -->
+        <div id="mlPredictionPanel" class="glass-card mb-4" style="display:none;">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0"><i class="bi bi-cpu me-2" style="color:#7c3aed;"></i>ML Risk Prediction
+              <span class="badge ms-2" style="background:rgba(124,58,237,0.1); color:#7c3aed; font-size:0.7rem; font-weight:600; border-radius:99px; padding:4px 10px;">Experimental</span>
+            </h5>
+          </div>
+          <div class="row align-items-center g-3">
+            <div class="col-md-3 text-center">
+              <div id="mlRiskBadge" class="risk-badge d-block mb-1" style="font-size:1.05rem; padding:10px 20px;">—</div>
+              <div class="text-muted small">Predicted Risk</div>
+              <div class="mt-2">
+                <div style="background:#e2e8f0; border-radius:99px; height:8px; overflow:hidden;">
+                  <div id="mlConfidenceBar" style="height:100%; border-radius:99px; background:var(--gradient-brand); width:0%; transition:width 0.8s ease;"></div>
+                </div>
+                <div class="text-muted small mt-1" id="mlConfidenceLabel">Confidence: —</div>
+              </div>
+            </div>
+            <div class="col-md-9">
+              <div class="row g-2" id="mlParamsGrid"></div>
+              <div id="mlMissingNote" class="text-muted small mt-2" style="display:none;"></div>
+              <div class="text-muted mt-2" style="font-size:0.78rem; border-top:1px solid var(--border-light); padding-top:8px;" id="mlDisclaimer"></div>
+            </div>
+          </div>
+          <div style="font-size:0.75rem; color:var(--text-muted); margin-top:10px;" id="mlModelVersion"></div>
         </div>
 
         <div class="glass-card mb-4">
@@ -259,7 +287,6 @@
 <script src="js/main.js"></script>
 <script src="js/dashboard.js"></script>
 <script src="js/upload.js"></script>
-<script src="js/dashboard.js"></script>
 <script>
   // If navigated here from History page "View" link, auto-open that report
   const pendingReportId = sessionStorage.getItem("mre_open_report");

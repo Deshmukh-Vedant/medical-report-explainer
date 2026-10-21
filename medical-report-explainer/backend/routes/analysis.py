@@ -24,9 +24,11 @@ from models.database import get_db
 from models.user import User
 from models.report import Report
 from routes.auth import get_current_user
-from schemas.report import ReportAnalysis, ReportDetail, TranslateRequest
+from schemas.report import ReportAnalysis, ReportDetail, TranslateRequest, MLPrediction
 from utils.gemini import analyze_report, GeminiError
 from utils.translator import translate_analysis
+from ml.extractor import extract_lab_params
+from ml.predictor import predict as ml_predict, model_available, PredictionResult
 
 logger = logging.getLogger("analysis")
 
@@ -102,6 +104,26 @@ def analyze(
     db.commit()
     db.refresh(report)
 
+    # --- ML Prediction (non-blocking: failure never prevents analysis return) ---
+    ml_prediction = None
+    if model_available():
+        try:
+            lab_params = extract_lab_params(report.original_text)
+            ml_result: PredictionResult = ml_predict(lab_params)
+            ml_prediction = MLPrediction(
+                risk_label=ml_result.risk_label,
+                confidence=ml_result.confidence,
+                extracted_params=ml_result.extracted_params,
+                missing_params=ml_result.missing_params,
+                model_version=ml_result.model_version,
+            )
+            report.ml_prediction_json = ml_prediction.model_dump_json()
+            db.commit()
+        except Exception as exc:
+            logger.warning("ML prediction failed (non-critical): %s", exc)
+
+    analysis.ml_prediction = ml_prediction
+
     return analysis
 
 
@@ -155,6 +177,16 @@ def get_report(
     if analysis is None and (report.summary or report.health_score is not None or report.risk_level):
         analysis = build_fallback_analysis(report)
 
+    ml_prediction = None
+    if report.ml_prediction_json:
+        try:
+            ml_prediction = MLPrediction(**json.loads(report.ml_prediction_json))
+        except Exception:
+            pass
+
+    if analysis and ml_prediction and analysis.ml_prediction is None:
+        analysis.ml_prediction = ml_prediction
+
     return ReportDetail(
         id=report.id,
         report_name=report.report_name,
@@ -165,6 +197,7 @@ def get_report(
         language=report.language,
         created_at=report.created_at,
         analysis=analysis,
+        ml_prediction=ml_prediction,
     )
 
 
