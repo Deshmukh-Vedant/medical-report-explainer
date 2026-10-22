@@ -1,6 +1,10 @@
-# Netlify configuration for MedExplain AI (Subfolder Base)
+# Netlify configuration for MedExplain AI (Static Frontend - Subfolder)
 [build]
   publish = "frontend"
+  command = "echo 'Static site: no build required'"
+
+[build.environment]
+  NETLIFY_USE_YARN = "false"
 
 # Security & CORS Headers
 [[headers]]
