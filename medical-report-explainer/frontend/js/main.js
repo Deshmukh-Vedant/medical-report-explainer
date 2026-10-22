@@ -5,7 +5,7 @@
 
 // ---------- Global config ----------
 // Default Render Backend URL for production Netlify deployment
-const DEFAULT_RENDER_BACKEND_URL = "https://medical-report-explainer-backend.onrender.com";
+const DEFAULT_RENDER_BACKEND_URL = "https://medical-report-explainer-backend-b9pv.onrender.com";
 
 // Support override via window object, query param (?backend_url=https://...), or localStorage
 const _urlParamBackend =

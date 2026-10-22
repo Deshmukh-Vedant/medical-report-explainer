@@ -8,4 +8,4 @@
  * If left empty, main.js will automatically fall back to the default Render URL
  * or the local development server (http://127.0.0.1:8000).
  */
-window.RENDER_BACKEND_URL = window.RENDER_BACKEND_URL || "https://medical-report-explainer-backend.onrender.com";
+window.RENDER_BACKEND_URL = window.RENDER_BACKEND_URL || "https://medical-report-explainer-backend-b9pv.onrender.com";
