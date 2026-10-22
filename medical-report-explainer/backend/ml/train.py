@@ -133,6 +133,11 @@ def train_and_save(output_path: str = None) -> None:
         script_dir = os.path.dirname(os.path.abspath(__file__))
         output_path = os.path.join(script_dir, "models", "lab_risk_classifier.pkl")
 
+    # Skip training if model already exists (avoids slow rebuild in Docker layer cache)
+    if os.path.exists(output_path):
+        logger.info("ML model already exists at %s — skipping training.", output_path)
+        return
+
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
     logger.info("Generating synthetic training data...")

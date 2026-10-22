@@ -1,34 +1,42 @@
+# ============================================================
+# render.yaml — Render Web Service using Docker runtime (Root)
+# ============================================================
+
 services:
   - type: web
     name: medical-report-explainer-backend
-    env: python
+    runtime: docker
+    dockerfilePath: ./medical-report-explainer/Dockerfile
+    dockerContext: ./medical-report-explainer
     plan: free
-    buildCommand: cd medical-report-explainer && pip install -r requirements.txt && cd backend && python -m ml.train
-    startCommand: cd medical-report-explainer/backend && uvicorn main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/health
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.10
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: TESSERACT_CMD
+        value: /usr/bin/tesseract
       - key: JWT_SECRET_KEY
         generateValue: true
       - key: JWT_ALGORITHM
         value: HS256
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
-        value: 60
+        value: "60"
       - key: RESET_TOKEN_EXPIRE_MINUTES
-        value: 30
-      - key: MAX_UPLOAD_MB
-        value: 20
+        value: "30"
       - key: DATABASE_URL
         value: sqlite:///./medical_reports.db
+      - key: MAX_UPLOAD_MB
+        value: "20"
       - key: GEMINI_API_KEY
         sync: false
       - key: CORS_ORIGINS
         sync: false
+      - key: APP_BASE_URL
+        sync: false
       - key: SMTP_HOST
         sync: false
       - key: SMTP_PORT
-        value: 587
+        value: "587"
       - key: SMTP_USERNAME
         sync: false
       - key: SMTP_PASSWORD

@@ -1,34 +1,64 @@
+# ============================================================
+# render.yaml — Render Web Service using Docker runtime
+# ============================================================
+# Render will detect this file automatically when you connect
+# your GitHub repository. The Dockerfile takes precedence over
+# buildCommand / startCommand when dockerfilePath is set.
+# ============================================================
+
 services:
   - type: web
     name: medical-report-explainer-backend
-    env: python
+    runtime: docker
+    # Path is relative to the repo root
+    dockerfilePath: ./medical-report-explainer/Dockerfile
+    # Docker build context (the subfolder that contains backend/, frontend/)
+    dockerContext: ./medical-report-explainer
     plan: free
-    buildCommand: pip install -r requirements.txt && cd backend && python -m ml.train
-    startCommand: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/health
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.10
+      # Python / Tesseract config (pre-set in the image; here for visibility)
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: TESSERACT_CMD
+        value: /usr/bin/tesseract
+
+      # JWT — generateValue creates a random secret automatically
       - key: JWT_SECRET_KEY
         generateValue: true
       - key: JWT_ALGORITHM
         value: HS256
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
-        value: 60
+        value: "60"
       - key: RESET_TOKEN_EXPIRE_MINUTES
-        value: 30
-      - key: MAX_UPLOAD_MB
-        value: 20
+        value: "30"
+
+      # Database — SQLite (ephemeral on free tier; swap for Postgres URL later)
       - key: DATABASE_URL
         value: sqlite:///./medical_reports.db
+
+      # Upload limits
+      - key: MAX_UPLOAD_MB
+        value: "20"
+
+      # Gemini API key — set via Render dashboard (never commit this!)
       - key: GEMINI_API_KEY
         sync: false
+
+      # CORS — add your exact Netlify URL here after deploying frontend
+      # Example: https://medexplain-ai.netlify.app
       - key: CORS_ORIGINS
         sync: false
+
+      # Password-reset email base URL (set to your Netlify URL after deploying)
+      - key: APP_BASE_URL
+        sync: false
+
+      # Email (SMTP) — leave blank to use console-only mode
       - key: SMTP_HOST
         sync: false
       - key: SMTP_PORT
-        value: 587
+        value: "587"
       - key: SMTP_USERNAME
         sync: false
       - key: SMTP_PASSWORD

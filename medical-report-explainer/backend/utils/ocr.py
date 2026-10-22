@@ -22,6 +22,11 @@ from PIL import Image
 
 logger = logging.getLogger("ocr")
 
+# Allow overriding Tesseract binary path via env var (needed in Docker / Render)
+_tesseract_cmd = os.getenv("TESSERACT_CMD", "")
+if _tesseract_cmd:
+    pytesseract.pytesseract.tesseract_cmd = _tesseract_cmd
+
 # Minimum characters per page below which we consider pdfplumber's
 # extraction "empty" and trigger the OCR fallback for that page.
 MIN_CHARS_THRESHOLD = 20

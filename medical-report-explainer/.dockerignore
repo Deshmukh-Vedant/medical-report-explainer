@@ -1,0 +1,64 @@
+# ==============================================================
+# .dockerignore — exclude files Docker doesn't need in the image
+# ==============================================================
+
+# Python cache and bytecode
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environments (never copy into Docker — dependencies
+# come from requirements.txt inside the container)
+venv/
+.venv/
+.venv*/
+env/
+ENV/
+
+# Local secrets — NEVER bake .env into the image
+.env
+backend/.env
+
+# SQLite databases (ephemeral; created fresh by the app at startup)
+*.db
+*.sqlite3
+
+# Git metadata
+.git/
+.gitignore
+.gitattributes
+
+# IDE / editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Test files (not needed at runtime)
+**/tests/
+**/test_*.py
+
+# Uploaded PDFs (not needed in the image)
+backend/uploads/reports/*.pdf
+
+# Build artifacts
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Research / docs not needed at runtime
+*.md
+RESEARCH_PAPER_SPECIFICATION.md
+IJSREM_RESEARCH_PAPER_DRAFT.md
+
+# Node modules if any
+node_modules/
+
+# Netlify / CI configs not needed inside container
+netlify.toml
+.netlify/
